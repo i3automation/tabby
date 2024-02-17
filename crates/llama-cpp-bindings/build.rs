@@ -83,6 +83,33 @@ fn build_llama_cpp() {
         println!("cargo:rustc-link-lib=hipblas");
     }
 
+    if cfg!(feature = "opencl") {
+        let mkl_root = env::var("MKLROOT")
+            .expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        let compiler_root = env::var("CMPLR_ROOT")
+            .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+
+        config.define("LLAMA_SYCL", "ON");
+        config.define("LLAMA_SYCL_F16", "ON");
+        config.define("CMAKE_CXX_COMPILER_ID", "IntelLLVM"); 
+        config.define("CMAKE_CXX_COMPILER_VERSION", "Intel LLVM 2024.0.2 (2024.0.2.20231213)");
+        config.define("CMAKE_C_COMPILER", format!("{}/bin/icx", compiler_root));
+        config.define("CMAKE_CXX_COMPILER", format!("{}/bin/icpx", compiler_root));
+        println!("cargo:rustc-link-search=native={}/lib", compiler_root);
+        println!("cargo:rustc-link-search=native={}/lib", mkl_root);
+        println!("cargo:rustc-link-lib=svml");
+        println!("cargo:rustc-link-lib=mkl_sycl_blas");
+        println!("cargo:rustc-link-lib=mkl_intel_ilp64");
+        println!("cargo:rustc-link-lib=mkl_tbb_thread");
+        println!("cargo:rustc-link-lib=mkl_core");
+        println!("cargo:rustc-link-lib=intlc");
+        println!("cargo:rustc-link-lib=sycl");
+        println!("cargo:rustc-link-lib=OpenCL");
+        println!("cargo:rustc-link-lib=pthread");
+        println!("cargo:rustc-link-lib=m");
+        println!("cargo:rustc-link-lib=dl");
+    }
+
     // By default, this value is automatically inferred from Rust’s compilation profile.
     // For Windows platform, we always build llama.cpp in release mode.
     // See https://github.com/TabbyML/tabby/pull/948 for more details.
